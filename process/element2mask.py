@@ -30,7 +30,7 @@ def load_data(file_path, file_type):
     else:
         raise ValueError("Unsupported file type. Please use 'csv' or 'json'.")
     
-data = load_data('dataset/train.json','json')
+data = load_data('/hd2/tangzhenchen/dataset/EvalMuse/train.json','json')
 
 def get_index(list1,list2):
     len_list1 = len(list1)
@@ -102,7 +102,7 @@ for item in tqdm(data):
 print(len_flow)
 print(len(data))
 print(error)
-with open('dataset/train_mask.json', 'w', newline='', encoding='utf-8') as file:
+with open('/hd2/tangzhenchen/dataset/EvalMuse/train_mask.json', 'w', newline='', encoding='utf-8') as file:
     json.dump(data_new, file, ensure_ascii=False, indent=4)
 
 # with open('dataset/data_train_error.json', 'w', newline='', encoding='utf-8') as file:
