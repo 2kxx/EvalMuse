@@ -31,6 +31,7 @@ from lavis.processors import *
 from lavis.runners import *
 from lavis.tasks import *
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Training")

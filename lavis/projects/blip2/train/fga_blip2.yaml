@@ -26,10 +26,10 @@ datasets:
     build_info:
         annotations:
           train:
-            url: "dataset/train_mask.json"
-            storage: dataset/train_mask.json
+            url: "/hd2/tangzhenchen/dataset/EvalMuse/train_mask.json"
+            storage: /hd2/tangzhenchen/dataset/EvalMuse/train_mask.json
         images:
-            storage: "dataset/images"
+            storage: "/hd2/tangzhenchen/dataset/EvalMuse/images"
 
 run:
   task: alignment
@@ -40,9 +40,9 @@ run:
   warmup_lr: 1e-8
   warmup_steps: 100
   weight_decay: 0.05
-  max_epoch: 4
-  batch_size_train: 14
-  batch_size_eval: 16
+  max_epoch: 15
+  batch_size_train: 56
+  batch_size_eval: 64
   lr_layer_decay: 0.95 # layer-wise learning rate decay for the ViT 
   num_workers: 4
   accum_grad_iters: 1

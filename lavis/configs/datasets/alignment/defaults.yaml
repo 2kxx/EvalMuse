@@ -15,10 +15,10 @@ datasets:
           url: dataset/train_mask.json
           storage: dataset/train_mask.json
         val:
-          url: "dataset/train_mask.json"
+          url: "/hd2/tangzhenchen/dataset/EvalMuse/train_mask.json"
           storage: dataset/train_mask.json
         test:
-          url: "dataset/train_mask.json"
+          url: "/hd2/tangzhenchen/dataset/EvalMuse/train_mask.json"
           storage: dataset/train_mask.json
       images:
           storage: './'
