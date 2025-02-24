@@ -460,7 +460,7 @@ class LazySupervisedDataset(Dataset):
         position_ids.masked_fill_(ret['attention_mask'] == 0, 1)
         image_end_token_id = self.tokenizer.convert_tokens_to_ids(IMG_END_TOKEN)
         assert (ret['input_ids'][0] == image_end_token_id).sum() == 1, f'image tokens are truncated, this dataset is {self.ds_name}'
-
+        scores = torch.tensor(data_item['scores'], dtype=torch.bfloat16)
         # Create the final return dictionary
         ret = dict(
             input_ids=ret['input_ids'][0],
@@ -468,7 +468,8 @@ class LazySupervisedDataset(Dataset):
             attention_mask=ret['attention_mask'][0],
             position_ids=position_ids[0],
             pixel_values=pixel_values,
-            image_flags=torch.tensor([1] * num_patches, dtype=torch.long)
+            image_flags=torch.tensor([1] * num_patches, dtype=torch.long),
+            scores=scores
         )
         return ret
 

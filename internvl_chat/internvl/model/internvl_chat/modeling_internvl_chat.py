@@ -148,6 +148,7 @@ class InternVLChatModel(PreTrainedModel):
             image_flags: Optional[torch.LongTensor] = None,
             past_key_values: Optional[List[torch.FloatTensor]] = None,
             labels: Optional[torch.LongTensor] = None,
+            scores: Optional[torch.FloatTensor] = None,
             use_cache: Optional[bool] = None,
             output_attentions: Optional[bool] = None,
             output_hidden_states: Optional[bool] = None,
@@ -202,7 +203,7 @@ class InternVLChatModel(PreTrainedModel):
         )
         logits = outputs.logits
 
-        loss = None
+        loss = 0.0
         if labels is not None and loss_weight is not None:
             loss_weight = torch.tensor(loss_weight, dtype=torch.float32, device=labels.device)
             # Shift so that tokens < n predict n
@@ -218,7 +219,6 @@ class InternVLChatModel(PreTrainedModel):
             shift_labels = shift_labels.to(shift_logits.device)
             shift_weights = shift_weights.to(shift_logits.device)
             loss = loss_fct(shift_logits, shift_labels)
-
             shift_weights_sum = shift_weights.sum()
             if loss_reduction_all_gather:
                 dist.all_reduce(shift_weights_sum, op=dist.ReduceOp.AVG)
@@ -231,13 +231,38 @@ class InternVLChatModel(PreTrainedModel):
             # Shift so that tokens < n predict n
             shift_logits = logits[..., :-1, :].contiguous()
             shift_labels = labels[..., 1:].contiguous()
+
+            pattern1 = [48920, 15338, 59444, 299, 17222]
+            pattern2 = [9583, 2917]
+            loss_score = 0.0
+            for b in range(shift_labels.size(0)):  # batch_size维度
+                j = 0
+                ls = 0.0
+                for idx, i in enumerate(shift_labels[b]):  # 遍历该batch中的每个标签
+                    if i in pattern1:
+                        score_a = (5 * shift_logits[b][idx][48920] +
+                                   4 * shift_logits[b][idx][15338] +
+                                   3 * shift_logits[b][idx][59444] +
+                                   2 * shift_logits[b][idx][299] +
+                                   1 * shift_logits[b][idx][17222])
+                        ls += (score_a - scores[b][j]) ** 2 / 5  # 对应batch内的score
+                        j += 1
+                    elif i in pattern2:
+                        score_e = (1 * shift_logits[b][idx][9583] + 1 * (1 - shift_logits[b][idx][2917])) / 2
+                        ls += (score_e - scores[b][j]) ** 2
+                        j += 1
+                ls /= j
+                loss_score += ls
+            loss_score /= shift_labels.size(0)
+            loss += loss_score
+
             # Flatten the tokens
             loss_fct = CrossEntropyLoss()
             shift_logits = shift_logits.view(-1, self.language_model.config.vocab_size)
             shift_labels = shift_labels.view(-1)
             # Enable model parallelism
             shift_labels = shift_labels.to(shift_logits.device)
-            loss = loss_fct(shift_logits, shift_labels)
+            loss += loss_fct(shift_logits, shift_labels)
             if ignore_flag:
                 loss = loss * 0.0
 

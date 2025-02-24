@@ -1,7 +1,7 @@
 import json
 
 
-with open('train.json', 'r', encoding='utf-8') as file:
+with open('/hd2/tangzhenchen/dataset/EvalMuse/train.json', 'r', encoding='utf-8') as file:
     data = json.load(file)
 
 def get_total_score_rating(total_score):
@@ -24,10 +24,9 @@ def get_element_score_answer(score):
     else:
         return "yes"
 
-
 output_data = []
 
-with open('processed_train2.jsonl', 'a+', encoding='utf-8') as output_file:
+with open('processed_train2.jsonl', 'w', encoding='utf-8') as output_file:
     for idx, item in enumerate(data, start=1):
         model = item["img_path"].split('/')[0]
         if model in ['SD_v1.5', 'SDXL-Turbo', 'SD_v2.1', 'SD_v1.2']:
@@ -43,12 +42,13 @@ with open('processed_train2.jsonl', 'a+', encoding='utf-8') as output_file:
         #     "image": item["img_path"],
         #     "conversations": []
         # }
-        new_item = {"id": str(idx), "width": width, "height": height, "image": item["img_path"], "conversations": []}
-
+        new_item = {"id": str(idx), "width": width, "height": height, "image": item["img_path"], "conversations": [], "scores": []}
+        scores = []
         total_score_rating = get_total_score_rating(item["total_score"])
+        scores.append(item["total_score"])
         new_item["conversations"].append({"from": "human", "value": f"<image>\nThis image is generated from the following prompt: '{item['prompt']}'. How would you rate the alignment of this image with the prompt? Please respond with a single word."})
             # "value": f"This image is generated from the following prompt: '{item['prompt']}'. How would you rate the alignment of this image with the prompt? Please respond with a single word.\n<|image|>"
-            
+
         new_item["conversations"].append({"from": "gpt", "value": total_score_rating.capitalize() + "."})
 
         for key, score in item["element_score"].items():
@@ -82,7 +82,7 @@ with open('processed_train2.jsonl', 'a+', encoding='utf-8') as output_file:
                 print(category, object)
 
             answer = get_element_score_answer(score)
-            
+            scores.append(score)
             # new_item["conversations"].append(
             #     {
             #         "from": "human",
@@ -97,7 +97,7 @@ with open('processed_train2.jsonl', 'a+', encoding='utf-8') as output_file:
             # )
             new_item["conversations"].append({"from": "human", "value": question})
             new_item["conversations"].append({"from": "gpt", "value": answer.capitalize() + "."})
-
+        new_item["scores"] = scores
         output_file.write(json.dumps(new_item, ensure_ascii=False) + '\n')
     # output_data.append(new_item)
 

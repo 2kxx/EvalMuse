@@ -7,6 +7,9 @@ from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoModel, AutoTokenizer
 import torch.nn.functional as F
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
@@ -83,7 +86,7 @@ def load_image(image_file, input_size=448, max_num=12):
 
 # If you have an 80G A100 GPU, you can put the entire model on a single GPU.
 # Otherwise, you need to load a model using multiple GPUs, please refer to the `Multiple GPUs` section.
-path = '/hd2/wangzichuan/InternVL/internvl_chat/work_dirs/internvl_chat_v2_5/merged_internvl2_5_8b_dynamic_res_2nd_finetune_lora'
+path = '/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/work_dirs/internvl_chat_v2_5/internvl2_5_8b_dynamic_res_2nd_finetune_lora_coco_merge'
 model = AutoModel.from_pretrained(
     path,
     torch_dtype=torch.bfloat16,
@@ -98,7 +101,7 @@ generation_config = dict(max_new_tokens=1024, do_sample=False)
 
 # single-image single-round conversation (单图单轮对话)
 prompt = 'A puffin sitting in booth while eating a pastry at a diner. Etching'
-q_a = f"This image is generated from the following prompt: {prompt}. How would you rate the alignment of this image with the prompt? Please respond with a single word."
+q_a = f"This image is generated from the following prompt: {prompt}. On a scale from 0 to 100, how would you rate the degree of alignment between the image and the prompt? Please provide a number within this range."
 response, history = model.chat(tokenizer, pixel_values, q_a, generation_config, history=None, return_history=True)
 print(f'User: {q_a}\nAssistant: {response}')
 
@@ -118,6 +121,6 @@ print(f'User: {q_a}\nAssistant: {response}')
 # print(prob5, prob4, prob3, prob2, prob1)
 
 
-question = "Is 'puffin' present in the image?"
+question = "Is 'puffin' visible in the image? Please rate its presence on a scale from 0 to 30."
 response, history = model.chat(tokenizer, pixel_values, question, generation_config, history=history, return_history=True)
 print(f'User: {question}\nAssistant: {response}')
