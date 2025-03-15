@@ -256,8 +256,7 @@ class InternVLChatModel(PreTrainedModel):
             pattern1 = [92553]
             pattern2 = [92555]
             loss_score = 0.0
-            print(shift_logits.shape)
-            print(shift_labels.shape)
+
             # for b in range(shift_labels.size(0)):  # batch_size维度
             #     j = 0
             #     ls1 = 0.0

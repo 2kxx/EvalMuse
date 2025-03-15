@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/hd2/wangzichuan/InternVL/internvl_chat')
+sys.path.append('/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat')
 
 import argparse
 

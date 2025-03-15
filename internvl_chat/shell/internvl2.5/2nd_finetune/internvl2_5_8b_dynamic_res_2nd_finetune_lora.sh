@@ -7,12 +7,14 @@ GRADIENT_ACC=$((BATCH_SIZE / PER_DEVICE_BATCH_SIZE / GPUS))
 
 
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-export MASTER_PORT=34229
+export MASTER_PORT=34230
 export TF_CPP_MIN_LOG_LEVEL=3
 export LAUNCHER=pytorch
-export CUDA_VISIBLE_DEVICES=2,3
+export CUDA_VISIBLE_DEVICES=1,2
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-OUTPUT_DIR='work_dirs/internvl_chat_v2_5/internvl2_5_8b_dynamic_res_2nd_finetune_lora'
+
+OUTPUT_DIR='work_dirs/internvl_chat_v2_5/internvl2_5_8b_dynamic_res_2nd_finetune_lora2'
 
 if [ ! -d "$OUTPUT_DIR" ]; then
   mkdir -p "$OUTPUT_DIR"
@@ -30,7 +32,7 @@ torchrun \
   --nproc_per_node=${GPUS} \
   --master_port=${MASTER_PORT} \
   internvl/train/internvl_chat_finetune.py \
-  --model_name_or_path "/hd2/tangzhenchen/model/InternVL2_5-8B" \
+  --model_name_or_path "/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/work_dirs/internvl_chat_v2_5/internvl2_5_8b_dynamic_res_2nd_finetune_lora_coco_merge_final" \
   --conv_style "internvl2_5" \
   --use_fast_tokenizer False \
   --output_dir ${OUTPUT_DIR} \
@@ -43,22 +45,25 @@ torchrun \
   --freeze_llm True \
   --freeze_mlp True \
   --freeze_backbone True \
+  --unfreeze_lm_head False\
   --use_llm_lora 16 \
   --vision_select_layer -1 \
   --dataloader_num_workers 4 \
   --bf16 True \
-  --num_train_epochs 2 \
+  --num_train_epochs 4 \
   --per_device_train_batch_size ${PER_DEVICE_BATCH_SIZE} \
+  --per_device_eval_batch_size 4 \
   --gradient_accumulation_steps ${GRADIENT_ACC} \
-  --evaluation_strategy "no" \
   --save_strategy "steps" \
-  --save_steps 800 \
+  --save_steps 400 \
+  --evaluation_strategy "steps" \
+  --eval_steps 5 \
   --learning_rate 4e-5 \
   --weight_decay 0.05 \
   --warmup_ratio 0.03 \
   --lr_scheduler_type "cosine" \
   --logging_steps 1 \
-  --max_seq_length 8192 \
+  --max_seq_length 4096 \
   --do_train True \
   --grad_checkpoint True \
   --group_by_length True \

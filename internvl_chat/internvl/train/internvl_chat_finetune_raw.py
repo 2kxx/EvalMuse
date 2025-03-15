@@ -783,90 +783,90 @@ def build_datasets(
         train_dataset = ConcatDataset(datasets)
     return train_dataset
 
-def build_datasets1(
-    data_args,
-    tokenizer,
-    tcs_loader,
-    model,
-    group_by_length=False,
-    dynamic_image_size=False,
-    use_thumbnail=False,
-    min_dynamic_patch=1,
-    max_dynamic_patch=12,
-    min_num_frame=8,
-    max_num_frame=32,
-    normalize_type='imagenet',
-    meta_path=None
-):
-    datasets = []
-    lengths = []
-    data_rank = dist.get_rank()
-    data_world_size = dist.get_world_size()
-    ds_collections = json.loads(open(meta_path).read())
-    for ds_idx, ds_name in enumerate(ds_collections.keys()):
-        repeat_time = ds_collections[ds_name]['repeat_time']
-        if 'max_dynamic_patch' in ds_collections[ds_name]:
-            max_num = ds_collections[ds_name]['max_dynamic_patch']
-            logger.info(f'max_dynamic_patch is set to {max_num} according to the meta file')
-        else:
-            max_num = max_dynamic_patch
-        dataset = LazySupervisedDataset(
-            data_args.conv_style, ds_collections[ds_name],
-            tokenizer,
-            tcs_loader,
-            ds_name=ds_name,
-            num_image_token=model.num_image_token,
-            image_size=data_args.force_image_size,
-            is_train=ds_collections[ds_name]['data_augment'],
-            pad2square=data_args.pad2square,
-            group_by_length=group_by_length and not data_args.use_packed_ds,
-            dynamic_image_size=dynamic_image_size,
-            use_thumbnail=use_thumbnail,
-            min_dynamic_patch=min_dynamic_patch,
-            max_dynamic_patch=max_num,
-            min_num_frame=min_num_frame,
-            max_num_frame=max_num_frame,
-            repeat_time=repeat_time,
-            normalize_type=normalize_type,
-            # hyperparameters for packed training
-            use_packed_ds=data_args.use_packed_ds,
-            data_rank=data_rank,
-            data_world_size=data_world_size,
-            distributed_mode=data_args.use_packed_ds,
-            force_shuffle=data_args.use_packed_ds,
-            random_seed=ds_idx,
-        )
-        logger.info(f'Add dataset: {ds_name} with length: {len(dataset)}')
-        datasets.append(dataset)
-        if data_args.use_data_resampling:
-            lengths.append(math.sqrt(len(dataset)))
-        else:
-            lengths.append(len(dataset))
-
-    if data_args.use_packed_ds:
-        total_length = sum(lengths)
-        train_dataset = PackedDataset(
-            tokenizer=tokenizer,
-            data_rank=data_rank,
-            data_world_size=data_world_size,
-            datasets=datasets,
-            dataset_weight=[l / total_length for l in lengths],
-            num_images_expected=data_args.num_images_expected,
-            max_packed_tokens=data_args.max_packed_tokens,
-            max_buffer_size=data_args.max_buffer_size,
-            log_freq=data_args.log_freq,
-            strict_mode=data_args.strict_mode,
-            replacement=data_args.replacement,
-            allow_overflow=data_args.allow_overflow,
-            allow_deduplicated_ds_name=False,
-        )
-    elif data_args.use_data_resampling:
-        total_length = sum(lengths)
-        weights = [l / total_length for l in lengths]
-        train_dataset = WeightedConcatDataset(datasets, weights)
-    else:
-        train_dataset = ConcatDataset(datasets)
-    return train_dataset
+# def build_datasets1(
+#     data_args,
+#     tokenizer,
+#     tcs_loader,
+#     model,
+#     group_by_length=False,
+#     dynamic_image_size=False,
+#     use_thumbnail=False,
+#     min_dynamic_patch=1,
+#     max_dynamic_patch=12,
+#     min_num_frame=8,
+#     max_num_frame=32,
+#     normalize_type='imagenet',
+#     meta_path=None
+# ):
+#     datasets = []
+#     lengths = []
+#     data_rank = dist.get_rank()
+#     data_world_size = dist.get_world_size()
+#     ds_collections = json.loads(open(meta_path).read())
+#     for ds_idx, ds_name in enumerate(ds_collections.keys()):
+#         repeat_time = ds_collections[ds_name]['repeat_time']
+#         if 'max_dynamic_patch' in ds_collections[ds_name]:
+#             max_num = ds_collections[ds_name]['max_dynamic_patch']
+#             logger.info(f'max_dynamic_patch is set to {max_num} according to the meta file')
+#         else:
+#             max_num = max_dynamic_patch
+#         dataset = LazySupervisedDataset(
+#             data_args.conv_style, ds_collections[ds_name],
+#             tokenizer,
+#             tcs_loader,
+#             ds_name=ds_name,
+#             num_image_token=model.num_image_token,
+#             image_size=data_args.force_image_size,
+#             is_train=ds_collections[ds_name]['data_augment'],
+#             pad2square=data_args.pad2square,
+#             group_by_length=group_by_length and not data_args.use_packed_ds,
+#             dynamic_image_size=dynamic_image_size,
+#             use_thumbnail=use_thumbnail,
+#             min_dynamic_patch=min_dynamic_patch,
+#             max_dynamic_patch=max_num,
+#             min_num_frame=min_num_frame,
+#             max_num_frame=max_num_frame,
+#             repeat_time=repeat_time,
+#             normalize_type=normalize_type,
+#             # hyperparameters for packed training
+#             use_packed_ds=data_args.use_packed_ds,
+#             data_rank=data_rank,
+#             data_world_size=data_world_size,
+#             distributed_mode=data_args.use_packed_ds,
+#             force_shuffle=data_args.use_packed_ds,
+#             random_seed=ds_idx,
+#         )
+#         logger.info(f'Add dataset: {ds_name} with length: {len(dataset)}')
+#         datasets.append(dataset)
+#         if data_args.use_data_resampling:
+#             lengths.append(math.sqrt(len(dataset)))
+#         else:
+#             lengths.append(len(dataset))
+#
+#     if data_args.use_packed_ds:
+#         total_length = sum(lengths)
+#         train_dataset = PackedDataset(
+#             tokenizer=tokenizer,
+#             data_rank=data_rank,
+#             data_world_size=data_world_size,
+#             datasets=datasets,
+#             dataset_weight=[l / total_length for l in lengths],
+#             num_images_expected=data_args.num_images_expected,
+#             max_packed_tokens=data_args.max_packed_tokens,
+#             max_buffer_size=data_args.max_buffer_size,
+#             log_freq=data_args.log_freq,
+#             strict_mode=data_args.strict_mode,
+#             replacement=data_args.replacement,
+#             allow_overflow=data_args.allow_overflow,
+#             allow_deduplicated_ds_name=False,
+#         )
+#     elif data_args.use_data_resampling:
+#         total_length = sum(lengths)
+#         weights = [l / total_length for l in lengths]
+#         train_dataset = WeightedConcatDataset(datasets, weights)
+#     else:
+#         train_dataset = ConcatDataset(datasets)
+#     return train_dataset
 
 def len2weight(x, loss_reduction):
     if x == 0:
@@ -1069,12 +1069,12 @@ def main():
         min_dynamic_patch=data_args.min_dynamic_patch, max_dynamic_patch=data_args.max_dynamic_patch,
         normalize_type=data_args.normalize_type, min_num_frame=data_args.min_num_frame,
         max_num_frame=data_args.max_num_frame)
-    eval_dataset = build_datasets1(
-        data_args, tokenizer, tcs_loader, model, group_by_length=training_args.group_by_length,
-        dynamic_image_size=data_args.dynamic_image_size, use_thumbnail=data_args.use_thumbnail,
-        min_dynamic_patch=data_args.min_dynamic_patch, max_dynamic_patch=data_args.max_dynamic_patch,
-        normalize_type=data_args.normalize_type, min_num_frame=data_args.min_num_frame,
-        max_num_frame=data_args.max_num_frame, meta_path="/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/shell/data/evalmuse_eval.json")
+    # eval_dataset = build_datasets1(
+    #     data_args, tokenizer, tcs_loader, model, group_by_length=training_args.group_by_length,
+    #     dynamic_image_size=data_args.dynamic_image_size, use_thumbnail=data_args.use_thumbnail,
+    #     min_dynamic_patch=data_args.min_dynamic_patch, max_dynamic_patch=data_args.max_dynamic_patch,
+    #     normalize_type=data_args.normalize_type, min_num_frame=data_args.min_num_frame,
+    #     max_num_frame=data_args.max_num_frame, meta_path="/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/shell/data/evalmuse_eval.json")
 
     def _freeze_params(module):
         for param in module.parameters():
@@ -1146,7 +1146,7 @@ def main():
         model=model,
         args=training_args,
         train_dataset=train_dataset if training_args.do_train else None,
-        eval_dataset=eval_dataset,
+        eval_dataset=None,
         tokenizer=tokenizer,
         data_collator=collator,
     )

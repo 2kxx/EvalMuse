@@ -123,3 +123,28 @@ def _get_train_sampler(self) -> Optional[torch.utils.data.Sampler]:
 def replace_train_sampler():
     transformers.Trainer._get_train_sampler = _get_train_sampler
     # print('Replace train sampler!!')
+
+# def _get_eval_sampler(self) -> Optional[torch.utils.data.Sampler]:
+#     if self.eval_dataset is None or not has_length(self.eval_dataset):
+#         return None
+#     # Build the sampler.
+#     if self.args.group_by_length:
+#         lengths = []
+#         for dataset in self.eval_dataset.datasets:
+#             lengths = lengths + dataset.length
+#         model_input_name = self.tokenizer.model_input_names[0] if self.tokenizer is not None else None
+#         return LengthGroupedSampler(
+#             self.args.train_batch_size,
+#             world_size=self.args.world_size * self.args.gradient_accumulation_steps,
+#             # self.args.train_batch_size * self.args.gradient_accumulation_steps,
+#             dataset=self.eval_dataset,
+#             lengths=lengths,
+#             model_input_name=model_input_name,
+#         )
+#     else:
+#         return RandomSampler(self.eval_dataset)
+#
+#
+# def replace_eval_sampler():
+#     transformers.Trainer._get_eval_sampler = _get_eval_sampler
+#     # print('Replace train sampler!!')

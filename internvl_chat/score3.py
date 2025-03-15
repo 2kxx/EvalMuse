@@ -9,14 +9,14 @@ import os
 import torch.nn.functional as F
 from transformers import AutoModel
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "43"
 
 {'excellent':48920, 'good':15338, 'fair':59444, 'poor':299, 'bad':17222}
 {'yes':9583, 'no':2917}
 
 
 
-model_path = '/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/work_dirs/internvl_chat_v2_5/internvl2_5_8b_dynamic_res_2nd_finetune_lora_coco_merge2000'
+model_path = '/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/work_dirs/internvl_chat_v2_5/internvl2_5_8b_dynamic_res_2nd_finetune_lora_coco_merge1-2000'
 model = AutoModel.from_pretrained(
     model_path,
     torch_dtype=torch.bfloat16,

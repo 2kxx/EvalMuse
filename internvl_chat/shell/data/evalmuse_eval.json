@@ -1,0 +1,9 @@
+{
+    "evalmuse_eval": {
+      "root": "/hd2/tangzhenchen/dataset/EvalMuse/images",
+      "annotation": "/hd2/tangzhenchen/project/EvalMuse-internvl/processed_eval_split.jsonl",
+      "data_augment": false,
+      "repeat_time": 1,
+      "length": 3272
+    }
+}

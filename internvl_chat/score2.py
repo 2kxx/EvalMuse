@@ -8,7 +8,7 @@ from transformers import AutoModel, AutoTokenizer
 import torch.nn.functional as F
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
@@ -86,7 +86,7 @@ def load_image(image_file, input_size=448, max_num=12):
 
 # If you have an 80G A100 GPU, you can put the entire model on a single GPU.
 # Otherwise, you need to load a model using multiple GPUs, please refer to the `Multiple GPUs` section.
-path = '/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/work_dirs/internvl_chat_v2_5/internvl2_5_8b_dynamic_res_2nd_finetune_lora_coco_merge'
+path = '/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/work_dirs/internvl_chat_v2_5/base'
 model = AutoModel.from_pretrained(
     path,
     torch_dtype=torch.bfloat16,
@@ -95,13 +95,37 @@ model = AutoModel.from_pretrained(
     trust_remote_code=True).eval().cuda()
 tokenizer = AutoTokenizer.from_pretrained(path, trust_remote_code=True, use_fast=False)
 
+print(tokenizer.encode("0"))
+print(tokenizer.encode("1"))
+print(tokenizer.encode("2"))
+print(tokenizer.encode("3"))
+print(tokenizer.encode("4"))
+print(tokenizer.encode("5"))
+print(tokenizer.encode("6"))
+print(tokenizer.encode("7"))
+print(tokenizer.encode("8"))
+print(tokenizer.encode("9"))
+print(tokenizer.encode("10"))
+print(tokenizer.encode("00"))
+print(tokenizer.encode("100"))
+print(tokenizer.encode("The degree of text-image alignment in this photo is bad, with an overall alignment score of 1.10."))
+print(tokenizer.encode("The degree of text-image alignment in this photo is poor, with an overall alignment score of 4.23."))
+print(tokenizer.encode("The degree of text-image alignment in this photo is fair, with an overall alignment score of 5.67."))
+print(tokenizer.encode("The degree of text-image alignment in this photo is good, with an overall alignment score of 8.99."))
+print(tokenizer.encode("The degree of text-image alignment in this photo is excellent, with an overall alignment score of 0.00."))
+
+# print(tokenizer.decode(4028))
+# print(tokenizer.decode(7989))
+# print(tokenizer.decode(6776))
+# print(tokenizer.decode(1811))
+# print(tokenizer.decode(9202))
 # set the max number of tiles in `max_num`
 pixel_values = load_image('/hd2/tangzhenchen/dataset/EvalMuse/images/SDXL-Turbo/00110.png', max_num=12).to(torch.bfloat16).cuda()
 generation_config = dict(max_new_tokens=1024, do_sample=False)
 
 # single-image single-round conversation (单图单轮对话)
 prompt = 'A puffin sitting in booth while eating a pastry at a diner. Etching'
-q_a = f"This image is generated from the following prompt: {prompt}. On a scale from 0 to 100, how would you rate the degree of alignment between the image and the prompt? Please provide a number within this range."
+q_a = f"This image is generated from the following prompt: '{prompt}'. How well does the image align with the object of this photo? Please provide a quality score."
 response, history = model.chat(tokenizer, pixel_values, q_a, generation_config, history=None, return_history=True)
 print(f'User: {q_a}\nAssistant: {response}')
 
@@ -120,7 +144,6 @@ print(f'User: {q_a}\nAssistant: {response}')
 # prob1 = probs[0, token_index1].item()
 # print(prob5, prob4, prob3, prob2, prob1)
 
-
-question = "Is 'puffin' visible in the image? Please rate its presence on a scale from 0 to 30."
+question = f"Is 'puffin' present in the image?"
 response, history = model.chat(tokenizer, pixel_values, question, generation_config, history=history, return_history=True)
 print(f'User: {question}\nAssistant: {response}')

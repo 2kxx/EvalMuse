@@ -1,33 +1,81 @@
+import copy
+
 from lmdeploy import pipeline, TurbomindEngineConfig, GenerationConfig
 from lmdeploy.vl import load_image
 import json
 from tqdm import tqdm
+import torch
 import os
 import torch.nn.functional as F
+from transformers import AutoModel
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-model = '/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/work_dirs/internvl_chat_v2_5/internvl2_5_8b_dynamic_res_2nd_finetune_lora_coco_merge2'
-# model = '/hd2/wangzichuan/InternVL/pretrained/InternVL2_5-8B'
-pipe = pipeline(model, backend_config=TurbomindEngineConfig(session_len=8192))
-gen_config = GenerationConfig(top_k=40, top_p=0.8, temperature=0.8, output_logits='generation', logprobs=5)
+{'excellent':48920, 'good':15338, 'fair':59444, 'poor':299, 'bad':17222}
+{'yes':9583, 'no':2917}
+
+
+
+model_path = '/hd2/tangzhenchen/project/EvalMuse-internvl/internvl_chat/work_dirs/internvl_chat_v2_5/internvl2_5_8b_dynamic_res_2nd_finetune_lora_coco_merge2-6000'
+model = AutoModel.from_pretrained(
+    model_path,
+    torch_dtype=torch.bfloat16,
+    low_cpu_mem_usage=True,
+    use_flash_attn=True,
+    trust_remote_code=True).eval().cuda()
+
+deepmlp1 = copy.deepcopy(model.deepmlp1)
+deepmlp2 = copy.deepcopy(model.deepmlp2)
+# score_hidden_fcs = copy.deepcopy(model.score_hidden_fcs)
+del model
+torch.cuda.empty_cache()
+
+pipe = pipeline(model_path, backend_config=TurbomindEngineConfig(session_len=8192))
+gen_config = GenerationConfig(top_k=40, top_p=0.8, temperature=0.8, output_logits='generation', output_last_hidden_state='generation', skip_special_tokens=False, spaces_between_special_tokens=False, logprobs=5)
 img_folder = "/hd2/tangzhenchen/dataset/EvalMuse/images/"
 test_json = "/hd2/tangzhenchen/dataset/EvalMuse/test.json"
+
+# 加载测试数据
 with open(test_json, 'r', encoding='utf-8') as f:
     test_data = json.load(f)
 
-results = []
-for index, data in enumerate(tqdm(test_data)):
+# 加载或初始化结果和保存的进度
+output_file = './output6000.json'
+checkpoint_file = './test_checkpoint6000.json'
+
+# 尝试从文件加载上次的进度
+if os.path.exists(checkpoint_file):
+    with open(checkpoint_file, 'r') as f:
+        checkpoint = json.load(f)
+    start_index = checkpoint.get('start_index', 0)
+    results = checkpoint.get('results', [])
+else:
+    start_index = 0
+    results = []
+
+pattern1 = [9202, 1811, 6776, 7989, 4028]
+pattern2 = [9970, 1038]
+
+for index, data in enumerate(tqdm(test_data[start_index:], desc="Processing")):
     prompt = data['prompt']
     img_path = os.path.join(img_folder, data['img_path'])
     image = load_image(img_path)
 
-    q_a = f"This image is generated from the following prompt: '{prompt}'. On a scale from 0 to 100, how would you rate the degree of alignment between the image and the prompt? Please provide a number within this range."
+    q_a = f"This image is generated from the following prompt: '{prompt}'. Evaluate the image-text alignment for this prompt and give a score."
     sess = pipe.chat((q_a, image), gen_config=gen_config)
-    score = sess.response.text
-    score = score.rstrip('.')
-    score = float(score)
-    score_a = score / 20
+    embedding = sess.response.last_hidden_state.to('cuda')
+    print(sess.response.text)
+    token_ids = sess.response.token_ids
+    idx1 = 0
+    idx2 = 0
+    for idx, token in enumerate(token_ids):
+        if token == 92553:
+            idx1 = idx
+        elif token == 92554:
+            idx2 = idx
+    embedding = torch.cat([embedding[idx1], embedding[idx2]], dim=-1)
+    # embedding = score_hidden_fcs[0](embedding[idx])
+    score_a = deepmlp1(embedding).to(torch.float32).item()
 
     element_scores = {}
     for key, score in data["element_score"].items():
@@ -41,28 +89,23 @@ for index, data in enumerate(tqdm(test_data)):
         if '/' in category:
             category = category.split('/')[0]
 
-        if category in ['object', 'human', 'animal', 'food', 'location']:
-            question = f"Is '{object}' visible in the image? Please rate its presence on a scale from 0 to 30."
-        elif category in ['activity', 'attribute', 'color', 'material', 'shape']:
-            question = f"Is the {category} '{object}' visible in the image? Please rate its presence on a scale from 0 to 30."
-        elif category == 'counting':
-            question = f"Is the quantity '{object}' visible in the image? Please rate its presence on a scale from 0 to 30."
-        elif category == 'spatial':
-            question = f"Is the spatial relationship '{object}' visible in the image? Please rate its presence on a scale from 0 to 30."
-        elif category == 'other':
-            question = f"Is '{object}' visible in the image? Please rate its presence on a scale from 0 to 30."
-        else:
-            print(category, object)
-            question = f"Is '{object}' visible in the image? Please rate its presence on a scale from 0 to 30."
-
+        question = f"Assess the coherence of the image and prompt related to '{object}'. Output a score."
         q_e = question
         sess = pipe.chat(q_e, session=sess, gen_config=gen_config)
-        score = sess.response.text
-        score = score.rstrip('.')
-        score = float(score)
-        score_e = score / 30
+        print(sess.response.text)
+        embedding = sess.response.last_hidden_state.to('cuda')
+        token_ids = sess.response.token_ids
+        idx1 = 0
+        idx2 = 0
+        for idx, token in enumerate(token_ids):
+            if token == 92555:
+                idx1 = idx
+            elif token == 92556:
+                idx2 = idx
+        embedding = torch.cat([embedding[idx1], embedding[idx2]], dim=-1)
+        score_e = deepmlp2(embedding).to(torch.float32).item()
 
-        element_scores[key] = score_e
+        element_scores[key] = score_e / 6
 
     result = {
         "prompt_id": data['prompt_id'],
@@ -77,8 +120,20 @@ for index, data in enumerate(tqdm(test_data)):
         "fidelity_label": data['fidelity_label']
     }
     results.append(result)
-    # with open('/hd2/wangzichuan/Evalmuse/submission/output.json', 'w+') as f:
-    #     json.dump(results, f, indent=4)
 
-with open('./output2.json', 'w+') as f:
+    # 每500个数据保存一次
+    if (index + 1) % 500 == 0:
+        with open(output_file, 'w+') as f:
+            json.dump(results, f, indent=4)
+
+        checkpoint = {
+            'start_index': start_index + index + 1,
+            'results': results
+        }
+
+        with open(checkpoint_file, 'w+') as f:
+            json.dump(checkpoint, f, indent=4)
+
+# 最后保存所有结果
+with open(output_file, 'w+') as f:
     json.dump(results, f, indent=4)

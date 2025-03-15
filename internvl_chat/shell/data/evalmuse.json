@@ -1,9 +1,9 @@
 {
     "evalmuse": {
       "root": "/hd2/tangzhenchen/dataset/EvalMuse/images",
-      "annotation": "/hd2/tangzhenchen/project/EvalMuse-internvl/processed_train2.jsonl",
+      "annotation": "/hd2/tangzhenchen/project/EvalMuse-internvl/processed_train_split.jsonl",
       "data_augment": true,
       "repeat_time": 1,
-      "length": 32717
+      "length": 29445
     }
 }
