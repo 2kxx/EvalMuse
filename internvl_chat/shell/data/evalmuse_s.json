@@ -1,0 +1,9 @@
+{
+    "evalmuse": {
+      "root": "/hd2/wangzichuan/Evalmuse/dataset/structure/train/images",
+      "annotation": "/hd2/wangzichuan/Evalmuse/dataset/structure/processed_train.jsonl",
+      "data_augment": true,
+      "repeat_time": 1,
+      "length": 10000
+    }
+}

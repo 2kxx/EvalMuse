@@ -1,0 +1,9 @@
+{
+    "evalmuse": {
+      "root": "/hd2/tangzhenchen/dataset/EvalMuse/images",
+      "annotation": "/hd2/wangzichuan/Evalmuse/dataset/alignment/train.jsonl",
+      "data_augment": true,
+      "repeat_time": 1,
+      "length": 29445
+    }
+}

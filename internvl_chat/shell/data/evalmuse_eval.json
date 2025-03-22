@@ -1,0 +1,9 @@
+{
+    "evalmuse": {
+      "root": "/hd2/tangzhenchen/dataset/EvalMuse/images",
+      "annotation": "/hd2/wangzichuan/Evalmuse/dataset/alignment/eval.jsonl",
+      "data_augment": false,
+      "repeat_time": 1,
+      "length": 3272
+    }
+}
